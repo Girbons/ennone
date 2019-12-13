@@ -1,7 +1,9 @@
 package sysinfo
 
 import (
+	"errors"
 	"fmt"
+	"runtime"
 
 	"github.com/shirou/gopsutil/host"
 	log "github.com/sirupsen/logrus"
@@ -25,19 +27,27 @@ func (h *HostInfo) LoadsInfo() error {
 	return nil
 }
 
-func (h *HostInfo) ReadTemperatures() error {
-	temperatures, err := host.SensorsTemperatures()
+func (h *HostInfo) ReadTemperatures() (int64, int64, error) {
+	var (
+		cpuAvgTemp int64
+		gpuAvgTemp int64
+	)
 
+	results, err := host.SensorsTemperatures()
 	if err != nil {
-		return err
+		return 0, 0, err
 	}
 
-	fmt.Println(temperatures)
+	if runtime.GOOS != "windows" {
+		log.Warning("%s not supported Yet", runtime.GOOS)
+	}
 
-	//for _, temp := range temperatures {
-	//}
+	for _, r := range results {
+		cpuAvgTemp += int64(r.Temperature)
+	}
 
-	return nil
+	cpuAvgTemp = cpuAvgTemp / int64(len(results))
+	return cpuAvgTemp, gpuAvgTemp, errors.New("cannot retrieve temperatures")
 }
 
 func (h *HostInfo) String() string {
